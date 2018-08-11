@@ -1,4 +1,5 @@
 ComponentNumbers=14
+time_index=4*24
 import pandas as pd
 class influent():
     def __init__ (self,name,time,feed_doc):
@@ -54,7 +55,7 @@ class influent():
         self.outflow_main=self.inflow-self.outflow_side
         
     def update_inflow(self):
-        self.inflow=self.feed['Q'][self.time]/96
+        self.inflow=self.feed['Q'][self.time]/time_index
         
 class bioreactor():
     def __init__ (self,name,time,volumn):
@@ -80,6 +81,34 @@ class bioreactor():
         #self.eff_comps[11]=Xnd
         #self.eff_comps[12]=Salk
         #self.eff_comps[13]=TSS
+        self.kin_paras=[0]*14
+        #self.kin_paras[0]=Ks
+        #self.kin_paras[1]=μH
+        #self.kin_paras[2]=KNO
+        #self.kin_paras[3]=KOH
+        #self.kin_paras[4]=bH
+        #self.kin_paras[5]=ηg
+        #self.kin_paras[6]=ηh
+        #self.kin_paras[7]=kh
+        #self.kin_paras[8]=Kx
+        #self.kin_paras[9]=μA
+        #self.kin_paras[10]=KNH
+        #self.kin_paras[11]=ka
+        #self.kin_paras[12]=KOA
+        #self.kin_paras[13]=bA
+        self.sto_paras=[0]*5
+        #self.sto_paras[0]=YA
+        #self.sto_paras[1]=YH
+        #self.sto_paras[2]=iXB
+        #self.sto_paras[3]=fp
+        #self.sto_paras[4]=iXP
+        
+    def set_kin_paras(self,i,para):
+        self.kin_paras[i]=para
+        
+    def set_sto_paras(self,i,para):
+        self.sto_paras[i]=para
+        
     def add_upstream(self, discharger, branch='Main'):
             #Add a single upstream unit to the bioreactor
             if branch == 'Main':
@@ -90,17 +119,44 @@ class bioreactor():
     def add_downstream(self, receiver, branch='Main'):
              #Add a single downstream unit to the bioreactor
             if branch == 'Main':
-                self.outlet.update({receiver.name: self.get_outflow_main})
+                self.outlet.update({receiver.name: self.get_outflow_main()})
 
             elif branch == 'Side':
-                self.outlet.update({receiver.name: self.get_outflow_side})
-    def react(self):
+                self.outlet.update({receiver.name: self.get_outflow_side()})
+                
+    def mix(self,discharger):
+        # Mix up the contaminants
+        flux=self.inlet[discharger.name]
         for i in range (ComponentNumbers):
-            temp=0
-            for a in self.inlet():
-                temp=self.inlet[a]*a.get_comps()[i]
-            self.comps[i]=(self.comps[i]*self.volumn-self.comps[i]*(self.get_outflow_main()+self.get_outflow_side())+temp)/self.volumn
-        
+            self.eff_comps[i]=(self.eff_comps[i]*(self.volumn-flux)+flux*discharger.eff_comps[i])/self.volumn
+            
+    def biodegrade(self):
+        ρ1=self.kin_paras[1]*self.eff_comps[1]/(self.eff_comps[1]+self.kin_paras[0])*self.eff_comps[7]/(self.eff_comps[7]+self.kin_paras[3])*self.eff_comps[4]
+        ρ2=self.kin_paras[1]*self.eff_comps[1]/(self.eff_comps[1]+self.kin_paras[0])*self.kin_paras[3]/(self.eff_comps[7]+self.kin_paras[3])*self.eff_comps[8]/(self.eff_comps[8]+self.kin_paras[2])*self.kin_paras[5]*self.eff_comps[4]
+        ρ3=self.kin_paras[9]*self.eff_comps[9]/(self.eff_comps[9]+self.kin_paras[10])*self.eff_comps[7]/(self.eff_comps[7]+self.kin_paras[12])*self.eff_comps[5]
+        ρ4=self.kin_paras[4]*self.eff_comps[4]
+        ρ5=self.kin_paras[13]*self.eff_comps[5]
+        ρ6=self.kin_paras[11]*self.eff_comps[10]*self.eff_comps[4]
+        ρ7=self.kin_paras[7]*self.eff_comps[3]/self.eff_comps[4]/(self.kin_paras[8]+self.eff_comps[3]/self.eff_comps[4])*(self.eff_comps[7]/(self.eff_comps[7]+self.kin_paras[3])+self.kin_paras[6]*(self.kin_paras[3]/(self.eff_comps[7]+self.kin_paras[3])*self.eff_comps[8]/(self.eff_comps[8]+self.kin_paras[2]))*self.eff_comps[4]
+        ρ8=ρ7*self.eff_comps[11]/self.eff_comps[3]
+        r=[0]*ComponentNumbers
+        r[0]=0
+        r[1]=ρ7-ρ1/self.sto_paras[1]-ρ2/self.sto_paras[1]
+        r[2]=0
+        r[3]=(1-self.sto_paras[3])*(ρ4+ρ5)-ρ7
+        r[4]=ρ1+ρ2-ρ4
+        r[5]=ρ3-ρ5
+        r[6]=self.sto_paras[3]*(ρ4+ρ5)
+        r[7]=-(1-self.sto_paras[1])/self.sto_paras[1]*ρ1-(4.57-self.sto_paras[0])/self.sto_paras[0]*ρ3
+        r[8]=-(1-self.sto_paras[1])/2.86/self.sto_paras[1]*ρ2+ρ3/self.sto_paras[0]
+        r[9]=-self.sto_paras[2]*ρ1-self.sto_paras[2]*ρ2-(self.sto_paras[2]+1/self.sto_paras[0])*ρ3+ρ6
+        r[10]=ρ8-ρ6
+        r[11]=(self.sto_paras[2]-self.sto_paras[3]*self.sto_paras[4])(ρ4+ρ5)-ρ8
+        r[12]=-self.sto_paras[2]*ρ1/14+((1-self.sto_paras[1])/(14*2.86*self.sto_paras[1])-self.sto_paras[2]/14)*ρ2-(self.sto_paras[2]/14+1/7/self.sto_paras[0])*ρ3+ρ6/14
+        r[13]=0
+        for i in range (ComponentNumbers):
+            self.eff_comps[i]=self.eff_comps[i]+r[i]/time_index
+        self.time=self.time+1
     def set_comps(self,a):
         #intilaizing the contaminants in the bioreactor
         for i in range(ComponentNumbers):
@@ -166,27 +222,8 @@ class clarifier():
         #self.eff_comps[11]=Xnd
         #self.eff_comps[12]=Salk
         #self.eff_comps[13]=TSS
-        self.kin_paras=[0]*14
-        #self.kin_paras[0]=Ks
-        #self.kin_paras[1]=μH
-        #self.kin_paras[2]=KNO
-        #self.kin_paras[3]=KOH
-        #self.kin_paras[4]=bH
-        #self.kin_paras[5]=ηg
-        #self.kin_paras[6]=ηk
-        #self.kin_paras[7]=kh
-        #self.kin_paras[8]=Kx
-        #self.kin_paras[9]=μA
-        #self.kin_paras[10]=KNH
-        #self.kin_paras[11]=ka
-        #self.kin_paras[12]=KOA
-        #self.kin_paras[13]=bA
-        self.sto_paras=[0]*5
-        #self.sto_paras[0]=YA
-        #self.sto_paras[1]=YH
-        #self.sto_paras[2]=iXB
-        #self.sto_paras[3]=fp
-        #self.sto_paras[4]=iXP
+        
+        
     def add_upstream(self, discharger, branch='Main'):
             #Add a single upstream unit to the bioreactor
             if branch == 'Main':
@@ -262,6 +299,16 @@ for t in range(20):
     D.update_outflow_main()
     E.update_inflow1(D)
     E.update_outflow_main()
+    A.mix()
+    B.mix()
+    C.mix()
+    D.mix()
+    E.mix()
+    A.biodegrade()
+    B.biodegrade()
+    C.biodegrade()
+    D.biodegrade()
+    E.biodegrade()
     Clarifier.update_inflow1(E)
     Clarifier.update_outflow_main()
     Influent.time=Influent.time+1
