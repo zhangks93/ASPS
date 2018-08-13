@@ -1,4 +1,4 @@
-ComponentNumbers=9
+import constant
 import pandas as pd
 class influent():
     def __init__ (self,name,time,feed_doc):
@@ -9,6 +9,20 @@ class influent():
         self.inflow=0
         self.feed=pd.read_excel(feed_doc)
         self.eff_comps= [0] * ComponentNumbers
+        #self.eff_comps[0]=Si
+        #self.eff_comps[1]=Ss
+        #self.eff_comps[2]=Xi
+        #self.eff_comps[3]=Xs
+        #self.eff_comps[4]=Xbh
+        #self.eff_comps[5]=Xba
+        #self.eff_comps[6]=Xp
+        #self.eff_comps[7]=So
+        #self.eff_comps[8]=Sno
+        #self.eff_comps[9]=Snh
+        #self.eff_comps[10]=Snd
+        #self.eff_comps[11]=Xnd
+        #self.eff_comps[12]=Salk
+        #self.eff_comps[13]=TSS
     def add_downstream(self, receiver, branch='Main'):
              #Add a single downstream unit to the bioreactor
             if branch == 'Main':
@@ -37,14 +51,9 @@ class influent():
         self.outflow_side=flow
         
     def update_outflow_main(self):
-        temp=0
-        for a in self.inlet:
-            temp=temp+self.inlet[a]
-        self.outflow_main=temp-self.outflow_side
-    def update_inflow(self):
-        self.inflow=self.feed['Q'][self.time]
-A=influent('influent',0,'data/bsm.xlsx')
-print(A.feed['Q'][A.time])
+        self.outflow_main=self.inflow-self.outflow_side
         
+    def update_inflow(self):
+        self.inflow=self.feed['Q'][self.time]/time_index
 
     
