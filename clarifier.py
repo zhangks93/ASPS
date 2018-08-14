@@ -12,7 +12,7 @@ class clarifier():
         self.outflow_sludge=total_volumn/self.SRT/24/4
         self.inlet={}
         self.outlet={'discharge':self.outflow_main,'sludge':self.outflow_sludge}
-        self.eff_comps= [0] * ComponentNumbers
+        self.eff_comps= [0] * constant.ComponentNumbers
         #self.eff_comps[0]=Si
         #self.eff_comps[1]=Ss
         #self.eff_comps[2]=Xi
@@ -27,7 +27,7 @@ class clarifier():
         #self.eff_comps[11]=Xnd
         #self.eff_comps[12]=Salk
         #self.eff_comps[13]=TSS
-        self.sto_paras=[0]*5
+        self.sto_paras=[0.24,0.67,0.08,0.08,0.06]
         #self.sto_paras[0]=YA
         #self.sto_paras[1]=YH
         #self.sto_paras[2]=iXB
@@ -82,7 +82,7 @@ class clarifier():
     def EQI(self):
         SNKj=self.eff_comps[9]+self.eff_comps[10]+self.sto_paras[2]*(self.eff_comps[4]+self.eff_comps[5])+self.sto_paras[4]*(self.eff_comps[6]+self.eff_comps[2])+self.eff_comps[11]
         TSS=0.75*(self.eff_comps[2]+self.eff_comps[3]+self.eff_comps[4]+self.eff_comps[5]+self.eff_comps[6])
-        BOD=0.25*(self.eff_comps[1]+self.eff_comps[3]+(1-self.sto_paras[3])*(elf.eff_comps[4]+elf.eff_comps[5])
+        BOD=0.25*(self.eff_comps[1]+self.eff_comps[3]+(1-self.sto_paras[3])*(elf.eff_comps[4]+elf.eff_comps[5]))
         COD=self.eff_comps[0]+self.eff_comps[1]+self.eff_comps[2]+self.eff_comps[3]+self.eff_comps[4]+self.eff_comps[5]+self.eff_comps[6]
         EQI=(2*TSS+COD+30*SNKj+10*self.eff_comps[8]+2*BOD)*self.get_outflow_main()
         

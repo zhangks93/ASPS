@@ -8,7 +8,7 @@ class influent():
         self.outflow_side=0
         self.inflow=0
         self.feed=pd.read_excel(feed_doc)
-        self.eff_comps= [0] * ComponentNumbers
+        self.eff_comps= [0]*constant.ComponentNumbers
         #self.eff_comps[0]=Si
         #self.eff_comps[1]=Ss
         #self.eff_comps[2]=Xi
@@ -33,7 +33,7 @@ class influent():
         
     def set_comps(self,a):
         #intilaizing the contaminants in the bioreactor
-        for i in range(ComponentNumbers):
+        for i in range(constant.ComponentNumbers):
             self.comps[i]=a[i]
         
     def get_outflow_main(self):
@@ -54,6 +54,6 @@ class influent():
         self.outflow_main=self.inflow-self.outflow_side
         
     def update_inflow(self):
-        self.inflow=self.feed['Q'][self.time]/time_index
+        self.inflow=self.feed['Q'][self.time]/constant.time_index
 
     
