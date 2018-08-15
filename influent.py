@@ -7,6 +7,7 @@ class influent():
         self.outflow_main=0
         self.outflow_side=0
         self.inflow=0
+        self.temp=15
         self.feed=pd.read_excel(feed_doc)
         self.eff_comps= [0]*constant.ComponentNumbers
         #self.eff_comps[0]=Si
@@ -55,5 +56,9 @@ class influent():
         
     def update_inflow(self):
         self.inflow=self.feed['Q'][self.time]/constant.time_index
+    
+    def update_comps(self):
+        self.eff_comps=self.feed.iloc[self.time,1:14]
+        self.temp=self.feed['Temp'][self.time]
 
     

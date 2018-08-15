@@ -26,7 +26,7 @@ class bioreactor():
         #self.eff_comps[11]=Xnd
         #self.eff_comps[12]=Salk
         #self.eff_comps[13]=TSS
-        self.kin_paras=[10,4,0.5,0.2,0.3,0.8,0.8,3,0.1,0.5,1,0.05,0.05,0.4]
+        self.kin_paras=[20,6.0,0.5,0.2,0.62,0.8,0.4,3,0.03,0.8,1,0.08,0.4,0.1]
         #self.kin_paras[0]=Ks
         #self.kin_paras[1]=μH
         #self.kin_paras[2]=KNO
@@ -41,7 +41,7 @@ class bioreactor():
         #self.kin_paras[11]=ka
         #self.kin_paras[12]=KOA
         #self.kin_paras[13]=bA
-        self.sto_paras=[0.24,0.67,0.08,0.08,0.06]
+        self.sto_paras=[0.24,0.67,0.086,0.08,0.06]
         #self.sto_paras[0]=YA
         #self.sto_paras[1]=YH
         #self.sto_paras[2]=iXB
@@ -68,9 +68,20 @@ class bioreactor():
 
             elif branch == 'Side':
                 self.outlet.update({receiver.name: self.get_outflow_side()})
-                
-    
-    def biodegrade(self,discharger1,discharger2=None,discharger3=None):
+    def kin_paras_update(self,temp):
+        #update kinetic parameters according to temperature
+        self.kin_paras[1]=6*1.075**(temp-20)
+        self.kin_paras[4]=0.62*1.075**(temp-20)
+        self.kin_paras[7]=3*1.116**(temp-20)
+        self.kin_paras[8]=0.03*1.116**(temp-20)
+        self.kin_paras[9]=0.8*1.103**(temp-20)
+        self.kin_paras[11]=0.08*1.072**(temp-20)
+        self.kin_paras[13]=0.1*1.12**(temp-20)
+        
+
+    def biodegrade(self,temp,discharger1,discharger2=None,discharger3=None):
+        #update all parameters concentration based on mass balance equations
+        self.kin_paras_update(temp)
         ρ1=self.kin_paras[1]*self.eff_comps[1]/(self.eff_comps[1]+self.kin_paras[0])*self.eff_comps[7]/(self.eff_comps[7]+self.kin_paras[3])*self.eff_comps[4]
         ρ2=self.kin_paras[1]*self.eff_comps[1]/(self.eff_comps[1]+self.kin_paras[0])*self.kin_paras[3]/(self.eff_comps[7]+self.kin_paras[3])*self.eff_comps[8]/(self.eff_comps[8]+self.kin_paras[2])*self.kin_paras[5]*self.eff_comps[4]
         ρ3=self.kin_paras[9]*self.eff_comps[9]/(self.eff_comps[9]+self.kin_paras[10])*self.eff_comps[7]/(self.eff_comps[7]+self.kin_paras[12])*self.eff_comps[5]
@@ -107,6 +118,7 @@ class bioreactor():
                 self.eff_comps[i]=self.eff_comps[i]+(discharger1.get_comps[i]*discharger.get_outflow_main()+discharger2.get_comps[i]*discharger2.get_outflow_side()+discharger3.get_comps[i]*discharger3.get_outflow_side()-self.get_comps[i]*(discharger1.get_outflow_main()+discharger2.get_outflow_side()+discharger3.get_outflow_side())+r[i]*self.volumn)/self.volumn
             self.eff_comps[7]=self.eff_comps[7]+(discharger1.get_comps[7]*discharger.get_outflow_main()+discharger2.get_comps[7]*discharger2.get_outflow_side()+discharger3.get_comps[7]*discharger3.get_outflow_side()-self.get_comps[7]*(discharger1.get_outflow_main()+discharger2.get_outflow_side()+discharger3.get_outflow_side())+r[7]*self.volumn+self.KLa*self.volumn*(8-self.eff_comps[7]))/self.volumn
         self.time=self.time+1
+    
     def set_comps(self,a):
         #intilaizing the contaminants in the bioreactor
         for i in range(constant.ComponentNumbers):
@@ -135,8 +147,9 @@ class bioreactor():
         for a in self.inlet:
             temp=temp+self.inlet[a]
         self.outflow_main=temp-self.outflow_side
+        
     def update_inflow(self,discharger1,discharger2=None,discharger3=None):
-        self.inlet[B.name]=B.get_outflow_main()
+        self.inlet[discharger1.name]=discharger1.get_outflow_main()
         if discharger2!=None:
             self.inlet[discharger2.name]=discharger2.get_outflow_side()
         if discharger3!=None:
