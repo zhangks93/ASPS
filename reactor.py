@@ -10,7 +10,7 @@ class bioreactor():
         self.outlet={}
         self.outflow_main=0
         self.outflow_side=0
-        self.KLa=0
+        self.KLa=1.5
         self.eff_comps= [0] * constant.ComponentNumbers
         #self.eff_comps[0]=Si
         #self.eff_comps[1]=Ss
@@ -82,14 +82,24 @@ class bioreactor():
     def biodegrade(self,temp,discharger1,discharger2=None,discharger3=None):
         #update all parameters concentration based on mass balance equations
         self.kin_paras_update(temp)
+        #ρ1:Aerobic growth of heterotrophs
         ρ1=self.kin_paras[1]*self.eff_comps[1]/(self.eff_comps[1]+self.kin_paras[0])*self.eff_comps[7]/(self.eff_comps[7]+self.kin_paras[3])*self.eff_comps[4]
+        #ρ2:Anoxic growth of hetertrophs
         ρ2=self.kin_paras[1]*self.eff_comps[1]/(self.eff_comps[1]+self.kin_paras[0])*self.kin_paras[3]/(self.eff_comps[7]+self.kin_paras[3])*self.eff_comps[8]/(self.eff_comps[8]+self.kin_paras[2])*self.kin_paras[5]*self.eff_comps[4]
+        #ρ3:Aerobic growth of autotrophs
         ρ3=self.kin_paras[9]*self.eff_comps[9]/(self.eff_comps[9]+self.kin_paras[10])*self.eff_comps[7]/(self.eff_comps[7]+self.kin_paras[12])*self.eff_comps[5]
+        #ρ4:Decay of heteroyrophs
         ρ4=self.kin_paras[4]*self.eff_comps[4]
+        #ρ5:Decay of autotrophs
         ρ5=self.kin_paras[13]*self.eff_comps[5]
+        #ρ6:Ammonification of soluable organic nitrogen
         ρ6=self.kin_paras[11]*self.eff_comps[10]*self.eff_comps[4]
+        #ρ7:Hydrolysis of entrapped organics
         ρ7=self.kin_paras[7]*self.eff_comps[3]/self.eff_comps[4]/(self.kin_paras[8]+self.eff_comps[3]/self.eff_comps[4])*(self.eff_comps[7]/(self.eff_comps[7]+self.kin_paras[3])+self.kin_paras[6]*self.kin_paras[3]/(self.eff_comps[7]+self.kin_paras[3])*self.eff_comps[8]/(self.eff_comps[8]+self.kin_paras[2]))*self.eff_comps[4]
+        #ρ8:Hydrolysis of entrapped organics nitrogen
         ρ8=ρ7*self.eff_comps[11]/self.eff_comps[3]
+        print(ρ1,ρ2,ρ3,ρ4,ρ5,ρ6,ρ7,ρ8)
+        #r:conversion rates
         r=[0]*constant.ComponentNumbers
         r[0]=0
         r[1]=ρ7-ρ1/self.sto_paras[1]-ρ2/self.sto_paras[1]
@@ -105,24 +115,27 @@ class bioreactor():
         r[11]=(self.sto_paras[2]-self.sto_paras[3]*self.sto_paras[4])*(ρ4+ρ5)-ρ8
         r[12]=-self.sto_paras[2]*ρ1/14+((1-self.sto_paras[1])/(14*2.86*self.sto_paras[1])-self.sto_paras[2]/14)*ρ2-(self.sto_paras[2]/14+1/7/self.sto_paras[0])*ρ3+ρ6/14
         r[13]=0
+        for i in range(constant.ComponentNumbers):
+            r[i]=r[i]/constant.time_index
+        
         if (discharger2==None and discharger3==None):
             for i in [0,1,2,3,4,5,6,8,9,10,11,12,13]:
-                self.eff_comps[i]=self.eff_comps[i]+(discharger1.get_comps[i]*discharger1.get_outflow_main()-self.get_comps[i]*discharger1.get_outflow_main()+r[i]*self.volumn)/self.volumn
-            self.eff_comps[7]=self.eff_comps[7]+((discharger1.get_comps[7]*discharger1.get_outflow_main()-self.get_comps[7]*discharger1.get_outflow_main())+r[7]*self.volumn+self.KLa*self.volumn*(8-self.eff_comps[7]))/self.volumn
+                self.eff_comps[i]=self.eff_comps[i]+(discharger1.get_comps()[i]*discharger1.get_outflow_main()-self.eff_comps[i]*discharger1.get_outflow_main()+r[i]*self.volumn)/self.volumn
+            self.eff_comps[7]=max(0.01,self.eff_comps[7]+((discharger1.get_comps()[7]*discharger1.get_outflow_main()-self.eff_comps[7]*discharger1.get_outflow_main())+r[7]*self.volumn+self.KLa*self.volumn*(8-self.eff_comps[7]))/self.volumn)
         elif (discharger3==None):
             for i in [0,1,2,3,4,5,6,8,9,10,11,12,13]:
-                self.eff_comps[i]=self.eff_comps[i]+(discharger1.get_comps[i]*discharger.get_outflow_main()+discharger2.get_comps[i]*discharger2.get_outflow_side()-self.get_comps[i]*(discharger1.get_outflow_main()+discharger2.get_outflow_side())+r[i]*self.volumn)/self.volumn
-            self.eff_comps[7]=self.eff_comps[7]+(discharger1.get_comps[7]*discharger.get_outflow_main()+discharger2.get_comps[7]*discharger2.get_outflow_side()-self.get_comps[7]*(discharger1.get_outflow_main()+discharger2.get_outflow_side())+r[7]*self.volumn+self.KLa*self.volumn*(8-self.eff_comps[7]))/self.volumn
+                self.eff_comps[i]=self.eff_comps[i]+(discharger1.get_comps()[i]*discharger1.get_outflow_main()+discharger2.get_comps()[i]*discharger2.get_outflow_side()-self.eff_comps[i]*(discharger1.get_outflow_main()+discharger2.get_outflow_side())+r[i]*self.volumn)/self.volumn
+            self.eff_comps[7]=max(0.01,self.eff_comps[7]+(discharger1.get_comps()[7]*discharger1.get_outflow_main()+discharger2.get_comps()[7]*discharger2.get_outflow_side()-self.eff_comps[7]*(discharger1.get_outflow_main()+discharger2.get_outflow_side())+r[7]*self.volumn+self.KLa*self.volumn*(8-self.eff_comps[7]))/self.volumn)
         else:
             for i in [0,1,2,3,4,5,6,8,9,10,11,12,13]:
-                self.eff_comps[i]=self.eff_comps[i]+(discharger1.get_comps[i]*discharger.get_outflow_main()+discharger2.get_comps[i]*discharger2.get_outflow_side()+discharger3.get_comps[i]*discharger3.get_outflow_side()-self.get_comps[i]*(discharger1.get_outflow_main()+discharger2.get_outflow_side()+discharger3.get_outflow_side())+r[i]*self.volumn)/self.volumn
-            self.eff_comps[7]=self.eff_comps[7]+(discharger1.get_comps[7]*discharger.get_outflow_main()+discharger2.get_comps[7]*discharger2.get_outflow_side()+discharger3.get_comps[7]*discharger3.get_outflow_side()-self.get_comps[7]*(discharger1.get_outflow_main()+discharger2.get_outflow_side()+discharger3.get_outflow_side())+r[7]*self.volumn+self.KLa*self.volumn*(8-self.eff_comps[7]))/self.volumn
+                self.eff_comps[i]=self.eff_comps[i]+(discharger1.get_comps()[i]*discharger1.get_outflow_main()+discharger2.get_comps()[i]*discharger2.get_outflow_side()+discharger3.get_comps()[i]*discharger3.get_outflow_side()-self.get_comps[i]*(discharger1.get_outflow_main()+discharger2.get_outflow_side()+discharger3.get_outflow_side())+r[i]*self.volumn)/self.volumn
+            self.eff_comps[7]=max(0.01,self.eff_comps[7]+(discharger1.get_comps()[7]*discharger1.get_outflow_main()+discharger2.get_comps()[7]*discharger2.get_outflow_side()+discharger3.get_comps()[7]*discharger3.get_outflow_side()-self.eff_comps[7]*(discharger1.get_outflow_main()+discharger2.get_outflow_side()+discharger3.get_outflow_side())+r[7]*self.volumn+self.KLa*self.volumn*(8-self.eff_comps[7]))/self.volumn)
         self.time=self.time+1
     
     def set_comps(self,a):
         #intilaizing the contaminants in the bioreactor
         for i in range(constant.ComponentNumbers):
-            self.comps[i]=a[i]
+            self.eff_comps[i]=a[i]
         
     def set_KLa(self,point):
         #adjust the dissolved oxygen point in aerated bioreactor

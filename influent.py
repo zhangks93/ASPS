@@ -58,7 +58,7 @@ class influent():
         self.inflow=self.feed['Q'][self.time]/constant.time_index
     
     def update_comps(self):
-        self.eff_comps=self.feed.iloc[self.time,1:14]
+        self.eff_comps=self.feed.iloc[self.time,1:15]
         self.temp=self.feed['Temp'][self.time]
 
     
